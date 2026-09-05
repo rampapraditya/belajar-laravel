@@ -1,0 +1,19 @@
+nbproject/private/
+
+#-------------------------
+# Temporary Files
+# Artinya:
+# SEMUA file di writable/cache/ tidak masuk git
+# KECUALI index.html tetap masuk git
+#-------------------------
+writable/cache/*
+!writable/cache/index.html
+
+writable/logs/*
+!writable/logs/index.html
+
+writable/session/*
+!writable/session/index.html
+
+writable/debugbar/*
+!writable/debugbar/.gitkeep
