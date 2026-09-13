@@ -2,13 +2,13 @@
 
 use Illuminate\Support\Facades\Route;
 
+use App\Http\Controllers\Home;
 use App\Http\Controllers\ProdukController;
 use App\Http\Controllers\PindahHalaman;
 use App\Http\Controllers\InputController;
 
-Route::get('/', function () {
-    return view('welcome');
-});
+Route::get('/', [Home::class, 'index']);
+Route::get('/home', [Home::class, 'index']);
 
 Route::prefix('produk')->group(function () {
     Route::get('/', [ProdukController::class, 'index']);
