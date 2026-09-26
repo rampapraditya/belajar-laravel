@@ -1,12 +1,12 @@
 @extends('index')
 @section('content')
-<div class="container-xxl flex-grow-1 container-p-y">
+<div class="container-xxl grow container-p-y">
     <div class="card">
         <div class="card-body">
             <nav aria-label="breadcrumb">
                 <ol class="breadcrumb breadcrumb-custom-icon">
                     <li class="breadcrumb-item">
-                        <a href="<?php echo base_url('home') ?>">Dashboard</a>
+                        <a href="{{ url('home') }}">Dashboard</a>
                         <i class="breadcrumb-icon icon-base ri ri-arrow-right-s-line align-middle"></i>
                     </li>
                     <li class="breadcrumb-item active">Perguruan Tinggi (PT)</li>
@@ -80,7 +80,7 @@
             <h5 id="titleModal">Modal Title</h5>
             <button type="button" class="btn-close text-reset" data-bs-dismiss="offcanvas" aria-label="Close"></button>
         </div>
-        <div class="offcanvas-body flex-grow-1">
+        <div class="offcanvas-body grow">
             <form id="form" class="pt-0 row g-3">
                 <input type="hidden" id="kode" name="kode" readonly autocomplete="off">
                 <div class="col-sm-12">
@@ -143,7 +143,7 @@
         table = $('#tb').DataTable({
             destroy: true,
             ajax: {
-                url: "<?php echo base_url('pt/ajaxlist'); ?>",
+                url: "{{ url('pt/ajax-list') }}",
                 type: "GET"
             },
             "columnDefs": [{
@@ -195,9 +195,9 @@
 
             var url = "";
             if (save_method === 'add') {
-                url = "<?php echo base_url('pt/ajax-add'); ?>";
+                url = "{{ url('pt/ajax-add') }}";
             } else {
-                url = "<?php echo base_url('pt/ajax-edit'); ?>";
+                url = "{{ url('pt/ajax-edit') }}";
             }
 
             let form_data = new FormData();
@@ -283,7 +283,7 @@
                         }, toast);
 
                         $.ajax({
-                            url: "<?php echo base_url('pt/hapus'); ?>",
+                            url: "{{ url('pt/hapus') }}",
                             type: "GET",
                             data: {
                                 id: id
@@ -337,7 +337,7 @@
         openedOffcanvas.show();
 
         $.ajax({
-            url: "<?php echo base_url('pt/show'); ?>",
+            url: "{{ url('pt/show') }}",
             type: "GET",
             data: {
                 id: id
