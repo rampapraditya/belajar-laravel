@@ -6,6 +6,7 @@ use App\Http\Controllers\Home;
 use App\Http\Controllers\ProdukController;
 use App\Http\Controllers\PindahHalaman;
 use App\Http\Controllers\InputController;
+use App\Http\Controllers\PTController;
 
 Route::get('/', [Home::class, 'index']);
 Route::get('/home', [Home::class, 'index']);
@@ -26,4 +27,13 @@ Route::prefix('formulir')->group(function () {
     Route::get('/hasil-get', [InputController::class, 'prosesGet']);
     Route::post('/hasil-post', [InputController::class, 'prosesPost']);
     Route::get('/detail/{id}', [InputController::class, 'detail']);
+});
+
+Route::prefix('pt')->group(function () {
+    Route::get('/', [PTController::class, 'index']);
+    Route::get('/ajax-list', [PTController::class, 'ajaxlist']);
+    Route::post('/ajax-add', [PTController::class, 'ajax_add']);
+    Route::get('/show', [PTController::class, 'show']);
+    Route::post('/ajax-edit', [PTController::class, 'ajax_edit']);
+    Route::get('/hapus', [PTController::class, 'hapus']);
 });
