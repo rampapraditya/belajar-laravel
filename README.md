@@ -57,6 +57,20 @@ Pembuatan file Controller dilakukan secara otomatis menggunakan perintah bawaan 
 php artisan make:controller ProdukController
 ```
 
+### 2. Cara Membuat Migrasi
+Pembuatan file migrasi dilakukan secara otomatis menggunakan perintah bawaan Laravel (Artisan) melalui CMD di dalam direktori proyek utama:
+```bash
+php artisan make:migration create_pt_table
+php artisan migrate
+```
+
+### 3. Cara Membuat Model
+Pembuatan file model dilakukan secara otomatis menggunakan perintah bawaan Laravel (Artisan) melalui CMD di dalam direktori proyek utama:
+```bash
+php artisan make:model Pt
+```
+
+
 
 ## Cara Menjalankan dan Menguji Aplikasi
 1. Aktifkan server pengembang lokal via CMD:
