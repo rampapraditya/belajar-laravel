@@ -7,6 +7,8 @@
     <meta name="robots" content="noindex, nofollow" />
     <title>SPMI</title>
     <meta name="description" content="" />
+    <meta name="author" content="Rampa Praditya" />
+    <meta name="csrf-token" content="{{ csrf_token() }}">
     <link rel="icon" type="image/x-icon" href="{{ asset('img/favicon/favicon.ico') }}" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />

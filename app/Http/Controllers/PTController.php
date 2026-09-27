@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Models\Pt;
+use Illuminate\Support\Facades\Storage;
 
 class PTController extends Controller
 {
@@ -27,21 +28,17 @@ class PTController extends Controller
 
     public function ajaxList()
     {
-        // 1. Mengambil data PT dari database diurutkan berdasarkan created_at ASC (sesuai kode CI4 kamu)
-        $list = \App\Models\Pt::orderBy('created_at', 'asc')->get();
+        $list = Pt::orderBy('created_at', 'asc')->get();
 
         $data = [];
         $no = 1;
 
-        // 2. Lakukan perulangan untuk menyusun format data DataTables
         foreach ($list as $row) {
             $logo = asset('img/def.png');
 
-            // Cek jika kolom logo_pt ada stands data dan filenya nyata di folder storage public
             if (!empty($row->logo_pt) && trim($row->logo_pt) !== '') {
-                // Laravel menyimpan file upload di folder storage/app/public/logos
-                if (\Illuminate\Support\Facades\Storage::disk('public')->exists('logos/' . $row->logo_pt)) {
-                    $logo = asset('storage/logos/' . $row->logo_pt);
+                if (file_exists(public_path($row->logo_pt))) {
+                    $logo = asset($row->logo_pt);
                 }
             }
 
@@ -52,16 +49,15 @@ class PTController extends Controller
             $val[] = $row->alamat_pt;
             $val[] = $row->telepon_pt;
 
-            // Kolom Gambar Logo (Menjaga style persis seperti markup CI4 milikmu)
+            // Kolom Gambar Logo
             $val[] = '<img src="' . $logo . '" alt="Logo PT" class="rounded" style="max-width: 60px; height: auto;">';
 
-            // Kolom Status (Menjaga style badge theme kamu)
+            // Kolom Status
             $val[] = ($row->status == 1)
                 ? '<span class="badge rounded-pill bg-label-primary me-1">Active</span>'
                 : '<span class="badge rounded-pill bg-label-warning me-1">Tidak Aktif</span>';
 
-            // Kolom Aksi Tombol Edit (ganti) dan Hapus (hapus)
-            // Menggunakan addslashes agar nama PT yang memiliki tanda kutip tunggal tidak merusak string JavaScript
+            // Kolom Aksi Tombol Ganti (Edit) dan Hapus
             $namaAman = addslashes($row->nama_pt);
             $val[] = '<div class="d-flex align-items-center justify-content-center gap-2">
                         <button onclick="ganti(\'' . $row->id_pt . '\')" class="btn btn-sm btn-text-warning rounded-pill btn-icon item-edit" title="Edit">
@@ -76,20 +72,16 @@ class PTController extends Controller
             $no++;
         }
 
-        // 3. Kembalikan data dalam format JSON standar Laravel
+        session()->save();
+
         return response()->json(['data' => $data]);
     }
 
-    public function ajaxAdd(Request $request)
+    public function ajax_add(Request $request)
     {
-        // 1. Cek apakah ada file yang diunggah dan statusnya valid
-        if (!$request->hasFile('file') || !$request->file('file')->isValid()) {
-            return response()->json(['status' => "File logo tidak ditemukan. Silakan pilih file untuk diunggah."])
-                ->header('X-CSRF-TOKEN', csrf_token());
-        }
-
-        // 2. Lakukan validasi input teks dan aturan file (MIME & Ukuran Maksimal 10MB)
+        // 1. Gabungkan pengecekan file DAN teks ke dalam satu Validator agar CSRF Token diproses normal lebih dulu
         $validator = \Illuminate\Support\Facades\Validator::make($request->all(), [
+            // Kita gunakan 'required' agar Laravel otomatis menolak jika file kosong atau tidak valid
             'file'   => 'required|file|mimes:jpeg,jpg,png|max:10240', // 10240 KB = 10 MB
             'kode'   => 'required',
             'nama'   => 'required',
@@ -97,20 +89,21 @@ class PTController extends Controller
             'tlp'    => 'nullable',
             'status' => 'required',
         ], [
-            'file.mimes' => 'Hanya diperkenankan file gambar (JPG/JPEG/PNG)',
-            'file.max'   => 'Hanya diperkenankan file di bawah 10 MB',
+            'file.required' => 'File logo tidak ditemukan. Silakan pilih file untuk diunggah.',
+            'file.mimes'    => 'Hanya diperkenankan file gambar (JPG/JPEG/PNG)',
+            'file.max'      => 'Hanya diperkenankan file di bawah 10 MB',
         ]);
 
-        // Jika validasi gagal, langsung kembalikan pesan error pertama
+        // Jika ada aturan validasi yang dilanggar (termasuk jika file logo tidak ada)
         if ($validator->fails()) {
-            return response()->json(['status' => $validator->errors()->first()])
+            return response()->json(['status' => $validator->errors()->first()], 200)
                 ->header('X-CSRF-TOKEN', csrf_token());
         }
 
-        // 3. Jika validasi lolos, jalankan logika penyimpanan data
+        // 2. Jika validasi lolos, jalankan logika penyimpanan data
         $status = $this->simpanDengan($request);
 
-        // 4. Kembalikan response berupa JSON beserta Token CSRF baru agar sinkron dengan iziToast kamu
+        // 3. Kembalikan response berupa JSON beserta Token CSRF baru yang sudah valid
         return response()->json(['status' => $status], 200)
             ->header('X-CSRF-TOKEN', csrf_token());
     }
@@ -120,22 +113,21 @@ class PTController extends Controller
         try {
             $file = $request->file('file');
 
-            // Generate nama file acak yang aman (seperti $file->getRandomName() di CI4)
+            // 1. Generate nama acak aman
             $fileName = $file->hashName();
 
-            // Pindahkan file ke folder storage/app/public/logos
-            $file->storeAs('logos', $fileName, 'public');
+            // Ini membuat file langsung berada di folder publik, mirip writable/public di CI4
+            $file->move(public_path('logos'), $fileName);
 
-            // Simpan data ke database menggunakan Model Pt Laravel
+            // 3. Simpan ke database via Eloquent Model Pt
             $pt = new Pt();
             $pt->kode_pt    = strip_tags($request->input('kode'));
             $pt->nama_pt    = strip_tags($request->input('nama'));
             $pt->alamat_pt  = strip_tags($request->input('alamat'));
             $pt->telepon_pt = strip_tags($request->input('tlp'));
-            $pt->logo_pt    = $fileName;
+            $pt->logo_pt    = 'logos/' . $fileName; // Kita simpan path foldernya sekalian agar mudah dipanggil
             $pt->status     = strip_tags($request->input('status'));
 
-            // id_pt (UUID), created_at, dan updated_at diisi otomatis oleh Laravel
             $isSaved = $pt->save();
 
             if ($isSaved) {
@@ -143,10 +135,101 @@ class PTController extends Controller
             } else {
                 return "Data gagal tersimpan";
             }
-
-            return "Data tersimpan";
         } catch (\Exception $e) {
             return "Data gagal tersimpan";
         }
+    }
+
+    public function show(Request $request)
+    {
+        $pt = Pt::findOrFail($request->input('id'));
+        return response()->json($pt);
+    }
+
+    // URL: pt/ajax-edit (Dipanggil saat tombol Save di dalam form Ganti diklik)
+    public function ajax_edit(Request $request)
+    {
+        // 1. Ambil data PT yang akan diubah berdasarkan input 'kodesis' (id_pt)
+        $pt = Pt::findOrFail($request->input('kodesis'));
+
+        // 2. Set aturan validasi teks bawaan
+        $rules = [
+            'kode'   => 'required',
+            'nama'   => 'required',
+            'alamat' => 'nullable',
+            'tlp'    => 'nullable',
+            'status' => 'required',
+        ];
+
+        // 3. Tambahkan validasi file HANYA jika pengguna mengunggah berkas logo baru
+        if ($request->hasFile('file') && $request->file('file')->isValid()) {
+            $rules['file'] = 'file|mimes:jpeg,jpg,png|max:10240'; // Maksimal 10MB
+        }
+
+        $validator = \Illuminate\Support\Facades\Validator::make($request->all(), $rules, [
+            'file.mimes' => 'Hanya diperkenankan file gambar (JPG/JPEG/PNG)',
+            'file.max'   => 'Hanya diperkenankan file di bawah 10 MB',
+        ]);
+
+        // Jika validasi gagal, kembalikan HTTP status 422 agar ditangkap blok error AJAX
+        if ($validator->fails()) {
+            return response()->json(['status' => $validator->errors()->first()], 422);
+        }
+
+        // 4. Eksekusi pembaruan data ke database
+        try {
+            $pt->kode_pt    = strip_tags($request->input('kode'));
+            $pt->nama_pt    = strip_tags($request->input('nama'));
+            $pt->alamat_pt  = strip_tags($request->input('alamat'));
+            $pt->telepon_pt = strip_tags($request->input('tlp'));
+            $pt->status     = strip_tags($request->input('status'));
+
+            // Tangani pembaruan berkas logo jika ada file baru yang masuk
+            if ($request->hasFile('file')) {
+                $file = $request->file('file');
+                $fileName = $file->hashName();
+
+                // Hapus logo lama dari folder public fisik jika sebelumnya ada
+                if (!empty($pt->logo_pt) && file_exists(public_path($pt->logo_pt))) {
+                    unlink(public_path($pt->logo_pt));
+                }
+
+                // Pindahkan file logo baru langsung ke folder public fisik (public/logos/)
+                $file->move(public_path('logos'), $fileName);
+                $pt->logo_pt = 'logos/' . $fileName;
+            }
+
+            // Kolom updated_at otomatis diisi oleh Eloquent Laravel
+            $pt->save();
+
+            $status = "Data tersimpan";
+        } catch (\Exception $e) {
+            $status = "Data gagal tersimpan";
+        }
+
+        return response()->json(['status' => $status], 200)
+            ->header('X-CSRF-TOKEN', csrf_token());
+    }
+
+
+    public function hapus(Request $request)
+    {
+        $idPt = $request->input('id');
+
+        try {
+            $pt = Pt::findOrFail($idPt);
+
+            if (!empty($pt->logo_pt) && file_exists(public_path($pt->logo_pt))) {
+                unlink(public_path($pt->logo_pt));
+            }
+
+            $pt->delete();
+            $status = "Data terhapus";
+        } catch (\Exception $e) {
+            $status = "Data gagal terhapus";
+        }
+
+        return response()->json(['status' => $status], 200)
+            ->header('X-CSRF-TOKEN', csrf_token());
     }
 }

@@ -221,8 +221,11 @@
                     xhr.setRequestHeader('X-CSRF-TOKEN', $('meta[name="csrf-token"]').attr('content'));
                 },
                 success: function(response, status, xhr) {
-                    let csrfToken = xhr.getResponseHeader('X-CSRF-TOKEN');
-                    $('meta[name="csrf-token"]').attr('content', csrfToken);
+                    // Gunakan pengecekan tipe fungsi agar aman dari crash browser
+                    if (xhr && typeof xhr.getResponseHeader === 'function') {
+                        let csrfToken = xhr.getResponseHeader('X-CSRF-TOKEN');
+                        if (csrfToken) $('meta[name="csrf-token"]').attr('content', csrfToken);
+                    }
 
                     $('#btnSave').html('<i class="icon-base ri ri-save-line icon-18px me-1"></i> Save');
                     $('#btnSave').attr('disabled', false);
@@ -249,13 +252,15 @@
                         });
                     }
                 },
-                error: function(response, status, xhr) {
-                    let csrfToken = xhr.getResponseHeader('X-CSRF-TOKEN');
-                    $('meta[name="csrf-token"]').attr('content', csrfToken);
+                error: function(jqXHR, textStatus, errorThrown) {
+                    if (jqXHR && typeof jqXHR.getResponseHeader === 'function') {
+                        let csrfToken = jqXHR.getResponseHeader('X-CSRF-TOKEN');
+                        if (csrfToken) $('meta[name="csrf-token"]').attr('content', csrfToken);
+                    }
 
                     iziToast.error({
                         title: 'Error',
-                        message: "Error json " + errorThrown,
+                        message: "Error json atau Token Kedaluwarsa (419)",
                         position: 'topRight'
                     });
 

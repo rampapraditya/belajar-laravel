@@ -6,10 +6,17 @@ use App\Http\Controllers\Home;
 use App\Http\Controllers\ProdukController;
 use App\Http\Controllers\PindahHalaman;
 use App\Http\Controllers\InputController;
+use App\Http\Controllers\LoginController;
 use App\Http\Controllers\PTController;
 
 Route::get('/', [Home::class, 'index']);
 Route::get('/home', [Home::class, 'index']);
+
+Route::prefix('login')->group(function () {
+    Route::get('/', [LoginController::class, 'index']);
+    Route::post('/proses', [LoginController::class, 'proses']);
+    Route::get('/logout', [LoginController::class, 'logout']);
+});
 
 Route::prefix('produk')->group(function () {
     Route::get('/', [ProdukController::class, 'index']);
